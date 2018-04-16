@@ -13,9 +13,8 @@ void outmsg(char *fmt, ...) {
 
 /* See whether line of text is a comment */
 static inline bool is_comment(char *s) {
-    int i;
     int n = strlen(s);
-    for (i = 0; i < n; i++) {
+    for (int i = 0; i < n; i++) {
         char c = s[i];
         if (!isspace(c))
             return c == '#';
@@ -50,10 +49,6 @@ void init() {
 // Allocate s and g outside of this fn
 bool read_input_file(state_t *s, grid_t *g, FILE *infile) {
     char linebuf[MAXLINE];
-    int num_drones;
-    int nnode;
-    int position;
-    int goal;
 
     // Skip comments
     while (fgets(linebuf, MAXLINE, infile) != NULL) {
@@ -68,11 +63,7 @@ bool read_input_file(state_t *s, grid_t *g, FILE *infile) {
         return false;
     }
     g->nnode = g->x_dim * g->y_dim * g->z_dim;
-    if (nnode != g->nnode) {
-        outmsg("Graph contains %d nodes, but drone file has %d.\n", g->nnode,
-               nnode);
-        return false;
-    }
+
     s->drone_goal = int_alloc(s->num_drones);
     ok = ok && s->drone_goal != NULL;
     s->drone_position = int_alloc(s->num_drones);
@@ -82,7 +73,9 @@ bool read_input_file(state_t *s, grid_t *g, FILE *infile) {
         return false;
     }
 
-    for (d = 0; d < num_drones; d++) {
+    for (d = 0; d < s->num_drones; d++) {
+        int goal;
+        int position;
         while (fgets(linebuf, MAXLINE, infile != NULL)) {
             if (!is_comment(linebuf))
                 break;
