@@ -1,4 +1,4 @@
-#ifndef READIN_H
+#ifndef RUN_H
 
 
 
@@ -25,6 +25,11 @@
 #include <mpi.h>
 #endif
 
+#include "cycletimer.h"
+
+/* Max line length for reading files */
+#define MAXLINE 1024
+
 
 typedef struct {
     int nnode;
@@ -46,13 +51,26 @@ typedef struct {
     int* drone_goal;
 }
 
-/* In readin.c */
-void init();
+/****** In readin.c ******/
+
+/* Print message on stderr */
+void outmsg(char *fmt, ...);
+
+/* Allocate and zero arrays of int */
+int* int_alloc(size_t n);
+
+/* Initialize the state of the function */
+state_t* init();
+
+/* Read in file */
+bool read_input_file(state_t* s, grid_t* g, FILE* infile);
 
 
 
 
-void free_state();
+
+#define RUN_H
+#endif /* RUN_H */
 
 
 
