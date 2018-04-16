@@ -12,7 +12,7 @@ static void usage(char *name) {
     outmsg("   -q        Operate in quiet mode.  Do not generate simulation results\n");
     outmsg("   -i INT    Display update interval\n");
     outmsg("   -t THD    Set number of threads\n");
-    done();
+    //done();
     exit(0);
 }
 
@@ -21,7 +21,7 @@ int main(int argc, char *argv[]) {
     int steps = 1;
     int dinterval = 1;
     int c;
-    graph_t *g = NULL;
+    grid_t *g = NULL;
     state_t *s = NULL;
     bool display = true;
     int thread_count = 1;
@@ -32,11 +32,11 @@ int main(int argc, char *argv[]) {
             case 'h':
                 usage(argv[0]);
                 break;
-            case 'i':
+            case 'f':
                 file = fopen(optarg, "r");
                 if (file == NULL) {
                 outmsg("Couldn't open input file %s\n", optarg);
-                done();
+                //done();
                 exit(1);
                 }
                 break;
@@ -55,7 +55,7 @@ int main(int argc, char *argv[]) {
             default:
                 outmsg("Unknown option '%c'\n", c);
                 usage(argv[0]);
-                done();
+                //done();
                 exit(1);
         }
     }
@@ -68,15 +68,15 @@ int main(int argc, char *argv[]) {
 
     bool success = read_input_file(s, g, file);
     if (!success) {
-        done();
+        //done();
         exit(1);
     }
 
     s->nthread = thread_count;
     double start = currentSeconds();
-    simulate(s, steps, update_mode, dinterval, display);
+    //simulate(s, steps, update_mode, dinterval, display);
     double delta = currentSeconds() - start;
-    outmsg("%d steps, %d rats, %.3f seconds\n", steps, s->nrat, delta);
+    outmsg("%d steps, %d drones, %.3f seconds\n", steps, s->num_drones, delta);
 
     return 0;
 }

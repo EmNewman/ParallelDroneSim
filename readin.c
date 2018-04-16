@@ -1,4 +1,4 @@
-#include "readin.h"
+#include "run.h"
 
 
 /******** Some helper functions from the GraphRats simutil.c file *********/
@@ -48,13 +48,7 @@ void init() {
 
     read_input_file(s, g, infile);
 
-
-
-
 }
-
-
-
 
 // Allocate s and g outside of this fn
 bool read_input_file(state_t* s, grid_t* g, FILE *infile) {
@@ -63,9 +57,6 @@ bool read_input_file(state_t* s, grid_t* g, FILE *infile) {
     int nnode;
     int position;
     int goal;
-    grid_t g;
-    // TODO define grid_t
-    // TODO define state_t
 
     // Skip comments
     while(fgets(linebuf, MAXLINE, infile) != NULL) {

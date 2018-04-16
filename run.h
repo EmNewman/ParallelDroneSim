@@ -35,7 +35,7 @@ typedef struct {
     int nnode;
     int x_dim;
     int y_dim;
-    int z-dim;
+    int z_dim;
 } grid_t;
 
 typedef struct {
@@ -49,7 +49,7 @@ typedef struct {
     int* drone_position;
     // Node ID for each drone goal. Length  num_drones
     int* drone_goal;
-}
+} state_t;
 
 /****** In readin.c ******/
 
