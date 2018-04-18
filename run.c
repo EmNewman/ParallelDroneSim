@@ -1,5 +1,4 @@
 #include <getopt.h>
-#include <string.h>
 
 #include "run.h"
 
@@ -22,7 +21,6 @@ int main(int argc, char *argv[]) {
     int steps = 1;
     int dinterval = 1;
     int c;
-    grid_t *g = NULL;
     state_t *s = NULL;
     bool display = true;
     int thread_count = 1;
@@ -67,17 +65,23 @@ int main(int argc, char *argv[]) {
 
     outmsg("Running with %d threads\n", thread_count);
 
-    bool success = read_input_file(s, g, file);
-    if (!success) {
-        // done();
+    s = init(file);
+    if (s == NULL) {
+        //done();
         exit(1);
     }
 
+
+
     s->nthread = thread_count;
     double start = currentSeconds();
-    // simulate(s, steps, update_mode, dinterval, display);
+    simulate(s, steps, dinterval, display);
     double delta = currentSeconds() - start;
     outmsg("%d steps, %d drones, %.3f seconds\n", steps, s->num_drones, delta);
 
     return 0;
+}
+
+void simulate(state_t* s, int steps, int dinterval, bool display) {
+    return;
 }

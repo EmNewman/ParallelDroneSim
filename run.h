@@ -14,6 +14,7 @@
 #include <stdbool.h>
 #include <stdio.h>
 #include <stdlib.h>
+#include <string.h>
 
 #if OMP
 #include <omp.h>
@@ -61,6 +62,9 @@ state_t *init();
 
 /* Read in file */
 bool read_input_file(state_t *s, grid_t *g, FILE *infile);
+
+/* Simulate function */
+void simulate(state_t* s, int steps, int dinterval, bool display);
 
 #define RUN_H
 #endif /* RUN_H */

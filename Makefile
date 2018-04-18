@@ -3,12 +3,12 @@ CC=gcc
 MPICC=mpicc
 OMP=-fopenmp -DOMP
 MPI=-DMPI
-CFLAGS=-g -O3 -Wall -DDEBUG=$(DEBUG)
+CFLAGS=-g -O3 -Wall -DDEBUG=$(DEBUG) -std=gnu11
 LDFLAGS = -lm
 DDIR = ./data
 
-CFILES = run.c readin.c
-HFILES = run.h
+CFILES = run.c readin.c cycletimer.c
+HFILES = run.h cycletimer.h
 
 all: run
 
