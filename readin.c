@@ -75,6 +75,10 @@ bool read_input_file(state_t *s, grid_t *g, FILE *infile) {
     ok = ok && s->drone_goal != NULL;
     s->drone_position = int_alloc(s->num_drones);
     ok = ok && s->drone_position != NULL;
+    s->unvisited_nodes = int_alloc(g->nnode);
+    ok = ok && s->unvisited_nodes != NULL;
+    s->node_distance_vals = int_alloc(g->nnode);
+    ok = ok && s->node_distance_vals != NULL;
     if (!ok) {
         outmsg("Couldn't allocate space for %d drones", s->num_drones);
         return false;

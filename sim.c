@@ -1,15 +1,70 @@
-#include "run.h"
+#include "pos.h"
 
+
+#define DIRECTIONS 6
+#define UP_WEIGHT 4
+#define DOWN_WEIGHT 1
+#define REG_WEIGHT 2
 
 static int next_move(state_t *s, int drone_id) {
-
+    grid_t* g = s->g;
 
     // TODO:
     // Calculate next step in optimal path around obstacles.
     // Move towards the goal.
 
-    // Algorithm:
-    //
+    /* Algorithm:
+     * Dijkstra's
+     * Assign weights to nodes: up is 2, side-side is 1, down is 0.5
+     *
+     *
+     *
+     */
+    //TODO protect against inf loops
+
+    // for now: do the naive way
+    int start_node = s->drone_position[drone_id];
+    int goal_node = s->drone_goal[drone_id];
+    int cur_node = start_node;
+    // mark all nodes as unvisited
+    memset(s->unvisited_nodes, true, g->nnode);
+    // set distance value to infinity
+    memset(s->node_dist_vals, g->nnode+1, g->nnode);
+    // set start node to 0
+    s->node_dist_vals[start_node] = 0;
+    // while goal has not been visited
+    while (s->unvisited_nodes[goal_node]) {
+        // consider all neighbors
+        // x+1 x-1 y+1 y-1 z+1 z-1
+        // no diagonals for now
+        for (int i = 0; i < DIRECTIONS; i++) {
+            enum direction d = i;
+            // TODO properly?
+            // calculate tentative distances.
+            int nbr = calculate_neighbor(cur_node, d, g);
+            int tentative_dist;
+            if (d == Z_POS) {
+                tentative_dist = s->node_dist_vals[cur_node] + UP_WEIGHT;
+            } else if (d == Z_NEG) {
+                tentative_dist = s->node_dist_vals[cur_node] + DOWN_WEIGHT;
+            } else {
+                tentative_dist = s->node_dist_vals[cur_node] + REG_WEIGHT;
+            }
+            if (tentative_dist < s->node_dist_vals[nbr]) {
+                s->node_dist_vals[nbr] = tentative_dist;
+            }
+        }
+        // mark as visited
+        s->unvisited_nodes[cur_node] = false;
+
+        // get minimum
+        // TODO convert to an actual queue?
+        if (s->unvisited_nodes[goal_node] = false) {
+            // Binary search node_dist_vals for minimum
+        }
+
+
+    }
 
     return 0;
 }
