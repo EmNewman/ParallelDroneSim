@@ -1,8 +1,6 @@
 #include "run.h"
 
 
-
-
 static int next_move(state_t *s, int drone_id) {
 
 
@@ -10,13 +8,16 @@ static int next_move(state_t *s, int drone_id) {
     // Calculate next step in optimal path around obstacles.
     // Move towards the goal.
 
+    // Algorithm:
+    //
 
+    return 0;
 }
 
 
 // TODO add next drone position
 static void process_batch(state_t *s, int bstart, int bcount) {
-    grid_t* g = s->g;
+    //grid_t* g = s->g;
 
     // Get next move towards the goal
     for (int drone_id = bstart; drone_id < bstart + bcount; drone_id++) {
@@ -54,11 +55,20 @@ void simulate (state_t *s, int count, int dinterval, bool display) {
     // TODO write show
 
     for (int i=0; i<count; i++) {
-        run_step(s);
+        //run_step(s);
+
+        // test: print all the drones and their goals
+        int n = s->num_drones;
+        for(int j = 0; j < n; j++) {
+            printf("%d %d\n", s->drone_position[j], s->drone_goal[j]);
+        }
+
+        /*
         if (display) {
             show_counts = (((i + 1) % dinterval) == 0) || (i == count - 1);
             show(s, show_counts);
         }
+        */
     }
 
 

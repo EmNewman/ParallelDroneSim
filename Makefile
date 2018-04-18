@@ -7,7 +7,7 @@ CFLAGS=-g -O3 -Wall -DDEBUG=$(DEBUG) -std=gnu11
 LDFLAGS = -lm
 DDIR = ./data
 
-CFILES = run.c readin.c cycletimer.c
+CFILES = run.c readin.c sim.c cycletimer.c
 HFILES = run.h cycletimer.h
 
 all: run

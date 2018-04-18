@@ -82,6 +82,3 @@ int main(int argc, char *argv[]) {
     return 0;
 }
 
-void simulate(state_t* s, int steps, int dinterval, bool display) {
-    return;
-}
