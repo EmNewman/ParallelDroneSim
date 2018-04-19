@@ -59,7 +59,7 @@ static int next_move(state_t *s, int drone_id) {
 
         // get minimum
         // TODO convert to an actual queue?
-        if (s->unvisited_nodes[goal_node] = false) {
+        if (s->unvisited_nodes[goal_node] == false) {
             // Binary search node_dist_vals for minimum
         }
 
