@@ -30,9 +30,9 @@ static int next_move(state_t *s, int drone_id) {
     int goal_node = s->drone_goal[drone_id];
     int cur_node = start_node;
     // mark all nodes as unvisited
-    memset(s->unvisited_nodes, true, g->nnode);
+    memset(s->unvisited_nodes, true, g->nnode * sizeof(bool));
     // set distance value to infinity
-    memset(s->node_dist_vals, g->nnode+1, g->nnode);
+    memset(s->node_dist_vals, -1, g->nnode * sizeof(int));
     // set start node to 0
     s->node_dist_vals[start_node] = 0;
     // while goal has not been visited
@@ -41,14 +41,14 @@ static int next_move(state_t *s, int drone_id) {
         // consider all neighbors
         // x+1 x-1 y+1 y-1 z+1 z-1
         // no diagonals for now
-        printf("cur_node: %d\n", cur_node);
+        //printf("cur_node: %d\n", cur_node);
         for (int i = 0; i < DIRECTIONS; i++) {
             int d = i;
-            printf("direction: %d\n", d);
+            //printf("direction: %d\n", d);
             // TODO properly?
             // calculate tentative distances.
             int nbr = calculate_neighbor(cur_node, d, g);
-            printf("nbr: %d\n", nbr);
+            //printf("nbr: %d\n", nbr);
             if (nbr > 0) {
 
             }
@@ -60,9 +60,9 @@ static int next_move(state_t *s, int drone_id) {
             } else {
                 tentative_dist = s->node_dist_vals[cur_node] + REG_WEIGHT;
             }
-            if (tentative_dist < s->node_dist_vals[nbr]) {
+            if (tentative_dist < s->node_dist_vals[nbr] || s->node_dist_vals[nbr] == -1) {
                 s->node_dist_vals[nbr] = tentative_dist;
-                printf("tentative_dist:%d\n", tentative_dist);
+                //printf("tentative_dist:%d\n", tentative_dist);
             }
         }
         // mark as visited
@@ -77,8 +77,9 @@ static int next_move(state_t *s, int drone_id) {
             {
                 if (s->unvisited_nodes[i])
                 {
-                    if (s->node_dist_vals[i] < cur_min_dist)
+                    if (s->node_dist_vals[i] < cur_min_dist && s->node_dist_vals[i] != -1)
                     {
+                       //printf("min 1??? %d\n", s->node_dist_vals[i]);
                       cur_min_dist = s->node_dist_vals[i];
                       cur_min = i;
                     }
@@ -100,7 +101,8 @@ static int next_move(state_t *s, int drone_id) {
         for (int i = 0; i < DIRECTIONS; i++) {
             enum direction d = i;
             int nbr = calculate_neighbor(cur_node, d, g);
-            if (s->node_dist_vals[nbr] < min_w) {
+            if (s->node_dist_vals[nbr] < min_w && s->node_dist_vals[nbr] != -1 && nbr != -1) {
+                //printf("min? %d node: %d\n", s->node_dist_vals[nbr], cur_node);
                 min_w = s->node_dist_vals[nbr];
                 min_nbr = nbr;
                 //printf("minimum: %d at node: %d\n", min_w, min_nbr);
@@ -110,6 +112,7 @@ static int next_move(state_t *s, int drone_id) {
         cur_node = min_nbr;
         if (cur_node == start_node) {
             result_pos = prev_node;
+            //printf("done\n");
         }
 
     }
