@@ -10,8 +10,8 @@ pos_t create_pos(int index, grid_t* g) {
     pos_t p;
 
     p.y_pos = index % g->x_dim;
-    p.x_pos = (index / g->x_dim) % g->y_dim;
-    p.z_pos = (index / g->x_dim) / g->y_dim;
+    p.x_pos = ((index - p.y_pos) / g->x_dim) % g->y_dim;
+    p.z_pos = (((index - p.y_pos)/ g->x_dim) - p.x_pos) / g->y_dim;
 
     return p;
 }
