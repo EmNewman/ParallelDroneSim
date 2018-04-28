@@ -42,6 +42,9 @@ static int next_move(state_t *s, int drone_id) {
         // x+1 x-1 y+1 y-1 z+1 z-1
         // no diagonals for now
         //printf("cur_node: %d\n", cur_node);
+//#if OMP
+//        #pragma omp parallel for
+//#endif
         for (int i = 0; i < DIRECTIONS; i++) {
             int d = i;
             //printf("direction: %d\n", d);
@@ -73,15 +76,23 @@ static int next_move(state_t *s, int drone_id) {
         if (s->unvisited_nodes[goal_node]) {
             int cur_min_dist = g->nnode + 1;
             int cur_min = 0;
+//#if OMP
+//            # pragma omp parallel for
+//#endif
             for (int i = 0; i < g->nnode; i++)
             {
                 if (s->unvisited_nodes[i])
                 {
                     if (s->node_dist_vals[i] < cur_min_dist && s->node_dist_vals[i] != -1)
                     {
-                       //printf("min 1??? %d\n", s->node_dist_vals[i]);
+                      //#if OMP
+                      //# pragma omp critical
+                      //#endif
+                      {
+                      //printf("min 1??? %d\n", s->node_dist_vals[i]);
                       cur_min_dist = s->node_dist_vals[i];
                       cur_min = i;
+                      }
                     }
                 }
             }
@@ -98,13 +109,21 @@ static int next_move(state_t *s, int drone_id) {
         int prev_node = cur_node;
         int min_w = g->nnode+1;
         int min_nbr = 0;
+//#if OMP
+//        #pragma omp parallel for
+//#endif
         for (int i = 0; i < DIRECTIONS; i++) {
             enum direction d = i;
             int nbr = calculate_neighbor(cur_node, d, g);
             if (s->node_dist_vals[nbr] < min_w && s->node_dist_vals[nbr] != -1 && nbr != -1) {
                 //printf("min? %d node: %d\n", s->node_dist_vals[nbr], cur_node);
+                //#if OMP
+                //# pragma omp critical
+                //#endif
+                {
                 min_w = s->node_dist_vals[nbr];
                 min_nbr = nbr;
+                }
                 //printf("minimum: %d at node: %d\n", min_w, min_nbr);
             }
         }
@@ -126,13 +145,14 @@ static void process_batch(state_t *s, int bstart, int bcount) {
     //grid_t* g = s->g;
 
     // Get next move towards the goal
+#if OMP
+    # pragma omp parallel for schedule(auto)
+#endif
     for (int drone_id = bstart; drone_id < bstart + bcount; drone_id++) {
         s->drone_position[drone_id] = next_move(s, drone_id);
     }
 
 }
-
-
 
 void run_step(state_t* s) {
 
