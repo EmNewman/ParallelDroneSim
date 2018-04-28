@@ -12,9 +12,11 @@ static void usage(char *name) {
            "results\n");
     outmsg("   -i INT    Display update interval\n");
     outmsg("   -t THD    Set number of threads\n");
-    // done();
+    //done();
     exit(0);
 }
+
+//void done() { printf("DONE\n"); }
 
 int main(int argc, char *argv[]) {
     FILE *file = NULL;

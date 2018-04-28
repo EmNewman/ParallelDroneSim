@@ -71,5 +71,7 @@ bool read_input_file(state_t *s, grid_t *g, FILE *infile);
 /* Simulate function */
 void simulate(state_t* s, int steps, int dinterval, bool display);
 
+//void done();
+
 #define RUN_H
 #endif /* RUN_H */
