@@ -4,6 +4,9 @@ run-seq
 # Prerequisites
 *.d
 
+# Symbol files
+*.s
+
 # Object files
 *.o
 *.ko
