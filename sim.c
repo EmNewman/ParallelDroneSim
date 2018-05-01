@@ -1,4 +1,5 @@
 #include "pos.h"
+#include "binary-heap.h"
 
 
 #define DIRECTIONS 6
@@ -12,6 +13,16 @@
 #define OMP1 0
 #define OMP2 0
 #define OMP 0
+
+static int int_compare(BinaryHeapValue value1, BinaryHeapValue value2)
+{
+  if (value1 < value2)
+    return -1;
+  else if (value1 == value2)
+    return 0;
+  else
+    return 1;
+}
 
 static int next_move(state_t *s, int drone_id) {
     grid_t* g = s->g;
@@ -39,6 +50,10 @@ static int next_move(state_t *s, int drone_id) {
     memset(s->node_dist_vals, -1, g->nnode * sizeof(int));
     // set start node to 0
     s->node_dist_vals[start_node] = 0;
+
+    BinaryHeap *pq = binary_heap_new(BINARY_HEAP_TYPE_MIN, &int_compare);
+    binary_heap_insert(pq, 0);
+
     // while goal has not been visited
     while (s->unvisited_nodes[goal_node]) {
         //printf("hi\n");
@@ -51,6 +66,8 @@ static int next_move(state_t *s, int drone_id) {
         #pragma omp parallel for schedule(auto)
 #endif
 */
+        // Dequeue here
+
         for (int i = 0; i < DIRECTIONS; i++) {
             int d = i;
             //printf("direction: %d\n", d);
@@ -62,6 +79,7 @@ static int next_move(state_t *s, int drone_id) {
                continue;
             }
             int tentative_dist;
+            // Add to queue
             if (d == Z_POS) {
                 tentative_dist = s->node_dist_vals[cur_node] + UP_WEIGHT;
             } else if (d == Z_NEG) {
