@@ -64,7 +64,7 @@ typedef enum {
  * A value stored in a @ref BinaryHeap.
  */
 
-typedef void *BinaryHeapValue;
+typedef int64_t BinaryHeapValue;
 
 /**
  * A null @ref BinaryHeapValue.
