@@ -12,11 +12,11 @@ static void usage(char *name) {
            "results\n");
     outmsg("   -i INT    Display update interval\n");
     outmsg("   -t THD    Set number of threads\n");
-    //done();
+    // done();
     exit(0);
 }
 
-//void done() { printf("DONE\n"); }
+// void done() { printf("DONE\n"); }
 
 int main(int argc, char *argv[]) {
     FILE *file = NULL;
@@ -69,11 +69,9 @@ int main(int argc, char *argv[]) {
 
     s = init(file);
     if (s == NULL) {
-        //done();
+        // done();
         exit(1);
     }
-
-
 
     s->nthread = thread_count;
     double start = currentSeconds();
@@ -83,4 +81,3 @@ int main(int argc, char *argv[]) {
 
     return 0;
 }
-

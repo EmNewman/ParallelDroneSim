@@ -25,7 +25,7 @@ static inline bool is_comment(char *s) {
 /* Allocate n ints and zero them out */
 int *int_alloc(size_t n) { return (int *)calloc(n, sizeof(int)); }
 
-state_t* init(FILE* infile) {
+state_t *init(FILE *infile) {
     // Allocate s, g
     state_t *s = malloc(sizeof(state_t));
     if (s == NULL) {
@@ -45,7 +45,7 @@ state_t* init(FILE* infile) {
 
     bool success = read_input_file(s, g, infile);
     if (!success) {
-        //done();
+        // done();
         exit(1);
     }
     return s;

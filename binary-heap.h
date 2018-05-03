@@ -51,26 +51,26 @@ extern "C" {
  */
 
 typedef enum {
-	/** A minimum heap. */
+    /** A minimum heap. */
 
-	BINARY_HEAP_TYPE_MIN,
+    BINARY_HEAP_TYPE_MIN,
 
-	/** A maximum heap. */
+    /** A maximum heap. */
 
-	BINARY_HEAP_TYPE_MAX
+    BINARY_HEAP_TYPE_MAX
 } BinaryHeapType;
 
 /**
  * A value stored in a @ref BinaryHeap.
  */
 
-typedef int64_t BinaryHeapValue;
+typedef void *BinaryHeapValue;
 
 /**
  * A null @ref BinaryHeapValue.
  */
 
-#define BINARY_HEAP_NULL ((void *) 0)
+#define BINARY_HEAP_NULL ((void *)0)
 
 /**
  * Type of function used to compare values in a binary heap.
@@ -148,4 +148,3 @@ unsigned int binary_heap_num_entries(BinaryHeap *heap);
 #endif
 
 #endif /* #ifndef ALGORITHM_BINARY_HEAP_H */
-

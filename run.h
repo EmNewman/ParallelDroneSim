@@ -29,13 +29,12 @@
 /* Max line length for reading files */
 #define MAXLINE 1024
 
-
 typedef struct {
     int nnode;
     int x_dim;
     int y_dim;
     int z_dim;
-    int* visited_set;
+    int *visited_set;
 } grid_t;
 
 typedef struct {
@@ -50,8 +49,8 @@ typedef struct {
     // Node ID for each drone goal. Length  num_drones
     int *drone_goal;
 
-    int* node_dist_vals;
-    int* unvisited_nodes;
+    int *node_dist_vals;
+    int *unvisited_nodes;
 } state_t;
 
 /****** In readin.c ******/
@@ -69,9 +68,9 @@ state_t *init();
 bool read_input_file(state_t *s, grid_t *g, FILE *infile);
 
 /* Simulate function */
-void simulate(state_t* s, int steps, int dinterval, bool display);
+void simulate(state_t *s, int steps, int dinterval, bool display);
 
-//void done();
+// void done();
 
 #define RUN_H
 #endif /* RUN_H */
