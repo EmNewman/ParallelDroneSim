@@ -52,6 +52,11 @@ typedef struct {
 
     int* node_dist_vals;
     int* unvisited_nodes;
+
+    int* buckets; //size max_buckets * g->nnode;
+    int* bucket_counter; // size max_buckets
+    int* bucket_index; // size max_buckets
+    int max_buckets;
 } state_t;
 
 /****** In readin.c ******/
