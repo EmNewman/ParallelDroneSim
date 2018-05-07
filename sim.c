@@ -22,10 +22,10 @@ struct vertex_dist {
 static int tuple_compare(void *arg1, void *arg2) {
     struct vertex_dist *t1 = arg1;
     struct vertex_dist *t2 = arg2;
-    if (t1->distance < t2->distance)
-        return -1;
-    else if (t1->distance == t2->distance)
+    if (t1->distance == t2->distance)
         return 0;
+    else if (t1->distance < t2->distance)
+        return -1;
     else
         return 1;
 }
@@ -44,42 +44,52 @@ static int pq_pop(BinaryHeap *pq) {
     return vertex;
 }
 
+static int dir2weight(enum direction d)
+{
+    if (d == Z_POS) {
+        return UP_WEIGHT;
+    } else if (d == Z_NEG) {
+        return DOWN_WEIGHT;
+    } else {
+        return REG_WEIGHT;
+    }
+}
+
+static int dir2weight_rev(enum direction d)
+{
+    if (d == Z_POS) {
+        return DOWN_WEIGHT;
+    } else if (d == Z_NEG) {
+        return UP_WEIGHT;
+    } else {
+        return REG_WEIGHT;
+    }
+}
+
+
 static int next_move(state_t *s, int drone_id) {
     grid_t *g = s->g;
 
-    // TODO:
-    // Calculate next step in optimal path around obstacles.
-    // Move towards the goal.
-
-    /* Algorithm:
-     * Dijkstra's
-     * Assign weights to nodes: up is 2, side-side is 1, down is 0.5
-     */
-    // TODO protect against inf loops
-
-    // for now: do the naive way
     int start_node = s->drone_position[drone_id];
     int goal_node = s->drone_goal[drone_id];
 
     // Mark all nodes as unvisited
-    memset(s->unvisited_nodes, true, g->nnode * sizeof(bool));
-    // Set distance value to infinity
-    memset(s->node_dist_vals, -1, g->nnode * sizeof(int));
-    // set start node to 0
+    for (int i = 0; i < g->nnode; i++)
+    {
+        s->unvisited_nodes[i] = true;
+        s->node_dist_vals[i] = 4 * g->nnode;
+    }
+    // Set start node distance to 0
     s->node_dist_vals[start_node] = 0;
 
     BinaryHeap *pq = binary_heap_new(BINARY_HEAP_TYPE_MIN, &tuple_compare);
-    pq_insert(pq, 0, 0);
+    pq_insert(pq, 0, start_node);
 
     while (s->unvisited_nodes[goal_node] && binary_heap_num_entries(pq) > 0) {
-        // printf("hi\n");
-        // consider all neighbors
-        // x+1 x-1 y+1 y-1 z+1 z-1
-        // no diagonals for now
-        // printf("cur_node: %d\n", cur_node);
-        // Dequeue here
+        // printf("Binary_heap_num_entries: %d\n", binary_heap_num_entries(pq));
         int cur_node;
 
+        // Get the next closest vertex
         do {
             cur_node = pq_pop(pq);
         } while (binary_heap_num_entries(pq) > 0 &&
@@ -87,14 +97,13 @@ static int next_move(state_t *s, int drone_id) {
         if (!s->unvisited_nodes[cur_node])
             break;
 
-        // Get the next closest vertex
-        while (binary_heap_num_entries(pq) > 0 && !s->unvisited_nodes[cur_node])
-            cur_node = pq_pop(pq);
-        if (!s->unvisited_nodes[cur_node])
-            break;
+        // printf("Dijkstra's Cur node: %d\n", cur_node);
 
         // For each neighbor of cur_node
-        for (int d = 0; d < DIRECTIONS; d++) {
+        // x+1 x-1 y+1 y-1 z+1 z-1
+        // no diagonals for now
+        for (int i = 0; i < DIRECTIONS; i++) {
+            enum direction d = i;
             // printf("direction: %d\n", d);
             int nbr = calculate_neighbor(cur_node, d, g);
             // printf("nbr: %d\n", nbr);
@@ -102,21 +111,14 @@ static int next_move(state_t *s, int drone_id) {
                 // If there's no neighbor, skip this loop iteration
                 continue;
             }
-            // calculate tentative distances.
-            int tentative_dist;
-            // Add to queue
-            if (d == Z_POS) {
-                tentative_dist = s->node_dist_vals[cur_node] + UP_WEIGHT;
-            } else if (d == Z_NEG) {
-                tentative_dist = s->node_dist_vals[cur_node] + DOWN_WEIGHT;
-            } else {
-                tentative_dist = s->node_dist_vals[cur_node] + REG_WEIGHT;
-            }
+            // Calculate tentative distances.
+            int tentative_dist = s->node_dist_vals[cur_node] + dir2weight(d);
+            // printf("tentative_dist: %d\n", tentative_dist);
 
             // If we improve on the previous distance (or if it was infinity)
             // Update it.
-            if (tentative_dist < s->node_dist_vals[nbr] ||
-                s->node_dist_vals[nbr] == -1) {
+            if (tentative_dist < s->node_dist_vals[nbr]) {
+                // printf("Adding!!!\n");
                 s->node_dist_vals[nbr] = tentative_dist;
                 // printf("tentative_dist:%d\n", tentative_dist);
 
@@ -127,43 +129,36 @@ static int next_move(state_t *s, int drone_id) {
         s->unvisited_nodes[cur_node] = false;
     }
 
+    // printf("Distances calculated!\n");
+
     // get the next move
     // iterate through all the neighbors of the goal, follow the minimum
     // distance
     int result_pos = 0;
     int cur_node = goal_node;
     while (cur_node != start_node) {
-        // printf("cur_node 2: %d\n", cur_node);
+        // printf("cur_node backtracking: %d\n", cur_node);
         int prev_node = cur_node;
-        int min_w = g->nnode + 1;
-        int min_nbr = 0;
-        /*#if OMP1
-                #pragma omp parallel for schedule(auto)
-        #endif
-        */
         for (int i = 0; i < DIRECTIONS; i++) {
             enum direction d = i;
             int nbr = calculate_neighbor(cur_node, d, g);
-            if (s->node_dist_vals[nbr] < min_w &&
-                s->node_dist_vals[nbr] != -1 && nbr != -1) {
-                // printf("min? %d node: %d\n", s->node_dist_vals[nbr],
-                // cur_node);
-                /*#if OMP1
-                # pragma omp critical
-                #endif
-                */
+            // printf("nbr backtracking: %d\n", nbr);
+            // if (nbr == 0)
+            // {
+                // printf("s->node_dist_vals[nbr] = %d\n", s->node_dist_vals[nbr]);
+                // printf("dir2weight_rev(d) = %d\n", dir2weight_rev(d));
+                // printf("s->node_dist_vals[cur_node] = %d\n", s->node_dist_vals[cur_node]);
+            // }
+            if (nbr != -1 &&
+                s->node_dist_vals[nbr] + dir2weight_rev(d) == s->node_dist_vals[cur_node])
                 {
-                    min_w = s->node_dist_vals[nbr];
-                    min_nbr = nbr;
+                    cur_node = nbr;
+                    break;
                 }
-                // printf("minimum: %d at node: %d\n", min_w, min_nbr);
             }
-        }
 
-        cur_node = min_nbr;
         if (cur_node == start_node) {
             result_pos = prev_node;
-            // printf("done\n");
         }
     }
 
@@ -181,6 +176,7 @@ static void process_batch(state_t *s, int bstart, int bcount) {
 #endif
 */
     for (int drone_id = bstart; drone_id < bstart + bcount; drone_id++) {
+        printf("Finding next move of drone_id: %d\n", drone_id);
         s->drone_position[drone_id] = next_move(s, drone_id);
     }
 }
@@ -209,7 +205,7 @@ void simulate(state_t *s, int count, int dinterval, bool display) {
     // TODO write show
 
     for (int i = 0; i < count; i++) {
-        printf("hi\n");
+        // printf("hi\n");
         run_step(s);
 
         // test: print all the drones and their goals
