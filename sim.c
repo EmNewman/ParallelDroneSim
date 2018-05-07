@@ -56,10 +56,16 @@ static int next_move(state_t *s, int drone_id) {
     int goal_node = s->drone_goal[drone_id];
     int cur_node = start_node;
     // mark all nodes as unvisited
-    memset(s->unvisited_nodes, true, g->nnode * sizeof(bool));
+    if (goal_node == start_node) {
+        return goal_node;
+    }
+    //memset(s->unvisited_nodes, true, g->nnode * sizeof(bool));
     // set distance value to infinity
     //memset(s->node_dist_vals, -1, g->nnode * sizeof(int));
     int INF = s->max_buckets;
+# if OMP
+    # pragma omp parallel for
+#endif
     for (int i = 0; i < g->nnode; i++) {
         s->node_dist_vals[i] = INF;
     }
@@ -179,11 +185,36 @@ static int next_move(state_t *s, int drone_id) {
     // get the next move
     // iterate through all the neighbors of the goal, follow the minimum distance
     // find the edge where edgeweight(cur_node, nbr) + dist(nbr, goal) = dist(start_node, goal)
-    int min_dist = INF;
-    int min_node = start_node;
-#if OMP
-    # pragma omp parallel for
-#endif
+    //int min_dist = INF;
+    int min_node = goal_node;
+    int result_node = start_node;
+
+    cur_node = goal_node;
+
+    int path_weight = s->node_dist_vals[goal_node];
+    int path_so_far = 0;
+    while (cur_node != start_node) {
+        //min_dist = INF;
+        int added_weight = 0;
+        for (int d = 0; d < DIRECTIONS; d++) {
+            // get the minimum distance to start
+            // keep running tally
+            int nbr = calculate_neighbor(cur_node, (enum direction) d, g);
+            bool check = path_weight == path_so_far + get_weight(d) + s->node_dist_vals[nbr];
+            if (nbr >= 0 && nbr <= g->nnode && check) {
+                //min_dist = s->node_dist_vals[nbr];
+                min_node = nbr;
+                added_weight = get_weight(d);
+            }
+        }
+        // update to neighbor
+        if (min_node == start_node) {
+            result_node = cur_node;
+        }
+        cur_node = min_node;
+        path_so_far += added_weight;
+    }
+/*
     for (int d = 0; d < DIRECTIONS; d++) {
         // find minimum value of dist(start, goal) - edge(start, neighbor)
         int w = get_weight(d);
@@ -192,11 +223,13 @@ static int next_move(state_t *s, int drone_id) {
             min_node = calculate_neighbor(start_node, (enum direction) d, g);
         }
     }
-
-    if (min_node == start_node) {
+    */
+    /*
+    if (result_node == start_node) {
         printf("Couldn't find correct neighbor\n");
     }
-    return min_node;
+    */
+    return result_node;
 
 }
 
@@ -249,6 +282,15 @@ void simulate (state_t *s, int count, int dinterval, bool display) {
             printf("%d %d\n", s->drone_position[j], s->drone_goal[j]);
         }
         printf("\n");
+
+        bool done = true;
+        for (int d = 0; d < s->num_drones; d++) {
+            done = done && (s->drone_position[d] == s->drone_goal[d]);
+        }
+        if (done) {
+            printf("DONE!!!\n");
+            return;
+        }
 
         /*
         if (display) {
