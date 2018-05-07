@@ -288,7 +288,7 @@ void simulate (state_t *s, int count, int dinterval, bool display) {
             done = done && (s->drone_position[d] == s->drone_goal[d]);
         }
         if (done) {
-            printf("DONE!!!\n");
+            printf("DONE!!! in %d steps\n", i);
             return;
         }
 
