@@ -10,9 +10,6 @@
 #define Z_POS 4
 #define Z_NEG 5
 
-#define OMP1 0
-#define OMP2 0
-#define OMP 0
 
 static inline int get_weight(int d) {
     if (d == Z_POS) {
@@ -75,13 +72,12 @@ static int next_move(state_t *s, int drone_id) {
 
 
     // set start node to 0
-    s->node_dist_vals[start_node] = 0;
+    s->node_dist_vals[cur_node] = 0;
     // while goal has not been visited
     int cur_bucket = 0;
-    s->buckets[0 + start_node] = 1;
+    s->buckets[0 + cur_node] = 1;
     s->bucket_counter[0] = 1;
-    s->bucket_index[0] = start_node;
-    //printf("hi\n");
+    s->bucket_index[0] = cur_node;
     printf("Time initializing: %.4f\n", currentSeconds() - start_time);
     while (1) {
         double start_time2 = currentSeconds();
@@ -111,6 +107,9 @@ static int next_move(state_t *s, int drone_id) {
         //s->bucket_index[cur_bucket]++;
 
         // Process all adjacents of vertex cur_vertex, and update dist. if required
+#if OMP
+        # pragma omp parallel for
+#endif
         for (int d = 0; d < DIRECTIONS; d++) {
             // get neighbor
             int nbr = calculate_neighbor(cur_vertex, (enum direction) d, g);
@@ -131,6 +130,9 @@ static int next_move(state_t *s, int drone_id) {
 
                     s->buckets[d_nbr * g->nnode + nbr] = 0;
                     //s->buckets[d_nbr][nbr] = 0;
+#if OMP
+                    # pragma omp atomic
+#endif
                     s->bucket_counter[d_nbr]--;
                 }
                 // update distance
@@ -140,6 +142,9 @@ static int next_move(state_t *s, int drone_id) {
                 //s->buckets[d_nbr][nbr] = 1;
                 //printf("index: %d\n", d_nbr*s->max_buckets + nbr);
                 s->buckets[d_nbr * g->nnode + nbr] = 1;
+#if OMP
+                # pragma omp atomic
+#endif
                 s->bucket_counter[d_nbr]++;
                 //printf("test\n");
                 // "storing updated iterator in dist[v].second"???
@@ -150,6 +155,9 @@ static int next_move(state_t *s, int drone_id) {
         // TODO ??
         total_direction_time += (currentSeconds() - start_time2);
         start_time2 = currentSeconds();
+#if OMP
+        #pragma omp parallel for schedule(auto)
+#endif
         for (int b = 0; b < s->max_buckets; b++) {
             int node = 0;
             for (int j = 0; j < s->g->nnode; j++) {
@@ -165,41 +173,31 @@ static int next_move(state_t *s, int drone_id) {
     }
     double end_time = currentSeconds();
     printf("Time running Dial's: %.4f\n", end_time - start_time);
-    printf("Time spent in directions: %.4f\n", total_direction_time);
-    printf("Time spent in buckets: %.4f\n", total_bucket_time);
+    printf("-----Time spent in directions: %.4f\n", total_direction_time);
+    printf("-----Time spent in buckets: %.4f\n", total_bucket_time);
     //printf("end\n\n");
     // get the next move
     // iterate through all the neighbors of the goal, follow the minimum distance
-    int result_pos = 0;
-    cur_node = goal_node;
-    start_time = currentSeconds();
-    while (cur_node != start_node) {
-        //printf("cur_node 2: %d\n", cur_node);
-        int prev_node = cur_node;
-        int min_w = g->nnode+1;
-        int min_nbr = 0;
-        for (int d = 0; d < DIRECTIONS; d++) {
-            //enum direction d = i;
-            int nbr = calculate_neighbor(cur_node, d, g);
-            if (s->node_dist_vals[nbr] < min_w && s->node_dist_vals[nbr] != -1 && nbr != -1) {
-                //printf("min? %d node: %d\n", s->node_dist_vals[nbr], cur_node);
-
-                min_w = s->node_dist_vals[nbr];
-                min_nbr = nbr;
-                //printf("minimum: %d at node: %d\n", min_w, min_nbr);
-            }
+    // find the edge where edgeweight(cur_node, nbr) + dist(nbr, goal) = dist(start_node, goal)
+    int min_dist = INF;
+    int min_node = start_node;
+#if OMP
+    # pragma omp parallel for
+#endif
+    for (int d = 0; d < DIRECTIONS; d++) {
+        // find minimum value of dist(start, goal) - edge(start, neighbor)
+        int w = get_weight(d);
+        if (s->node_dist_vals[goal_node] - w < min_dist) {
+            min_dist = s->node_dist_vals[goal_node] - w;
+            min_node = calculate_neighbor(start_node, (enum direction) d, g);
         }
-
-        cur_node = min_nbr;
-        if (cur_node == start_node) {
-            result_pos = prev_node;
-            //printf("done\n");
-        }
-
     }
-    end_time = currentSeconds();
-    printf("Time finding move: %.4f\n", end_time - start_time);
-    return result_pos;
+
+    if (min_node == start_node) {
+        printf("Couldn't find correct neighbor\n");
+    }
+    return min_node;
+
 }
 
 
@@ -208,11 +206,6 @@ static void process_batch(state_t *s, int bstart, int bcount) {
     //grid_t* g = s->g;
 
     // Get next move towards the goal
-    /*
-#if OMP2
-    # pragma omp parallel for schedule(auto)
-#endif
-*/
     for (int drone_id = bstart; drone_id < bstart + bcount; drone_id++) {
         s->drone_position[drone_id] = next_move(s, drone_id);
     }
@@ -246,7 +239,7 @@ void simulate (state_t *s, int count, int dinterval, bool display) {
     // TODO write show
 
     for (int i=0; i<count; i++) {
-        printf("hi\n");
+        //printf("hi %d\n", OMP);
         run_step(s);
 
         // test: print all the drones and their goals

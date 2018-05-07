@@ -31,4 +31,4 @@ clean:
 	rm -f *~ *.pyc
 	rm -rf *.dSYM
 	rm -f *.tgz
-	rm -f run run-seq
+	rm -f run run-seq run-omp
