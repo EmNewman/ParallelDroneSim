@@ -176,8 +176,14 @@ static void process_batch(state_t *s, int bstart, int bcount) {
 #endif
 */
     for (int drone_id = bstart; drone_id < bstart + bcount; drone_id++) {
-        printf("Finding next move of drone_id: %d\n", drone_id);
-        s->drone_position[drone_id] = next_move(s, drone_id);
+        int goal_node = s->drone_goal[drone_id];
+        if (s->drone_position[drone_id] == goal_node)
+            printf("Drone %d has reached goal\n", drone_id);
+        else
+        {
+            printf("Finding next move of drone_id: %d\n", drone_id);
+            s->drone_position[drone_id] = next_move(s, drone_id);
+        }
     }
 }
 
