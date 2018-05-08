@@ -1,4 +1,5 @@
 #include <getopt.h>
+#include <omp.h>
 
 #include "run.h"
 
@@ -65,7 +66,13 @@ int main(int argc, char *argv[]) {
         usage(argv[0]);
     }
 
+#if OMP
+    omp_set_num_threads(thread_count);
     outmsg("Running with %d threads\n", thread_count);
+#else
+    outmsg("Running with 1 thread\n");
+#endif
+
 
     s = init(file);
     if (s == NULL) {
