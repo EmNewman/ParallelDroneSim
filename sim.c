@@ -9,6 +9,8 @@
 #define Z_POS 4
 #define Z_NEG 5
 
+#define ITERS 100
+
 static inline int get_weight(int d) {
     if (d == Z_POS) {
         return UP_WEIGHT;
@@ -29,7 +31,7 @@ static inline int dir2weight_rev(int d) {
     }
 }
 
-static int next_move(state_t *s, int drone_id) {
+static int next_move(state_t *s, int drone_id, double *bench_time) {
     grid_t *g = s->g;
 
     // TODO:
@@ -57,7 +59,7 @@ static int next_move(state_t *s, int drone_id) {
     int start_node = s->drone_position[drone_id];
     int goal_node = s->drone_goal[drone_id];
 
-for (int iters = 0; iters < 1; iters++) {
+for (int iters = 0; iters < ITERS; iters++) {
     // mark all nodes as unvisited
     if (goal_node == start_node) {
         return goal_node;
@@ -149,7 +151,8 @@ for (int iters = 0; iters < 1; iters++) {
 
 }
     double end_time = currentSeconds();
-    printf("Time running Dial's: %.4f\n", end_time - start_time);
+    *bench_time += end_time - start_time;
+    // printf("Time running Dial's: %.4f\n", end_time - start_time);
 
     int prev_node = 0;
     int cur_node = goal_node;
@@ -176,30 +179,32 @@ for (int iters = 0; iters < 1; iters++) {
 }
 
 // TODO add next drone position
-static void process_batch(state_t *s, int bstart, int bcount) {
+static double process_batch(state_t *s, int bstart, int bcount) {
     // grid_t* g = s->g;
 
+    double total_bench_time = 0.0;
     // Get next move towards the goal
     for (int drone_id = bstart; drone_id < bstart + bcount; drone_id++) {
         int goal_node = s->drone_goal[drone_id];
-        if (s->drone_position[drone_id] == goal_node)
-            printf("Drone %d has reached goal\n", drone_id);
+        if (s->drone_position[drone_id] == goal_node);
+            // printf("Drone %d has reached goal\n", drone_id);
         else
         {
-            printf("Finding next move of drone_id: %d\n", drone_id);
-            s->drone_position[drone_id] = next_move(s, drone_id);
+            // printf("Finding next move of drone_id: %d\n", drone_id);
+            s->drone_position[drone_id] = next_move(s, drone_id, &total_bench_time);
         }
     }
 
+    return total_bench_time;
 }
 
-void run_step(state_t *s) {
+double run_step(state_t *s) {
 
     // Iterate through all drones
     // One by one for now?
     // Leave in process_batch just in case
     // for (int b = 0; b < s->num_drones; b+= batch_size;) {
-    process_batch(s, 0, s->num_drones);
+    return process_batch(s, 0, s->num_drones);
     //}
 }
 
@@ -216,9 +221,11 @@ void simulate(state_t *s, int count, int dinterval, bool display) {
         show(s, show_counts);
     // TODO write show
 
+    double total_total_bench_time = 0.0;
+
     for (int i = 0; i < count; i++) {
         // printf("hi %d\n", OMP);
-        run_step(s);
+        total_total_bench_time += run_step(s);
 
         // test: print all the drones and their goals
 
@@ -233,6 +240,7 @@ void simulate(state_t *s, int count, int dinterval, bool display) {
             done = done && (s->drone_position[d] == s->drone_goal[d]);
         }
         if (done) {
+            printf("Total time taken: %f\n", total_total_bench_time);
             printf("DONE!!! in %d steps\n", i);
             return;
         }
