@@ -129,7 +129,7 @@ for (int iters = 0; iters < 1; iters++) {
 
                     if (swap)
                     {
-                        int dest = __sync_fetch_and_add(s->bucket_counter, 1);
+                        int dest = __sync_fetch_and_add(s->bucket_counter + tentative_dist, 1);
                         s->buckets[g->nnode * tentative_dist + dest] = nbr;
                     }
 #else
