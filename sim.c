@@ -1,6 +1,5 @@
 #include "pos.h"
 
-
 #define DIRECTIONS 6
 #define UP_WEIGHT 4
 #define DOWN_WEIGHT 1
@@ -10,7 +9,6 @@
 #define Z_POS 4
 #define Z_NEG 5
 
-
 static inline int get_weight(int d) {
     if (d == Z_POS) {
         return UP_WEIGHT;
@@ -19,11 +17,10 @@ static inline int get_weight(int d) {
     } else {
         return REG_WEIGHT;
     }
-
 }
 
 static int next_move(state_t *s, int drone_id) {
-    grid_t* g = s->g;
+    grid_t *g = s->g;
 
     // TODO:
     // Calculate next step in optimal path around obstacles.
@@ -47,7 +44,7 @@ static int next_move(state_t *s, int drone_id) {
      * process repeated until all vertices permanently labeled
      *
      */
-    //TODO protect against inf loops
+    // TODO protect against inf loops
     double total_direction_time = 0;
     double total_bucket_time = 0;
     // for now: do the naive way
@@ -59,23 +56,22 @@ static int next_move(state_t *s, int drone_id) {
     if (goal_node == start_node) {
         return goal_node;
     }
-    //memset(s->unvisited_nodes, true, g->nnode * sizeof(bool));
+    // memset(s->unvisited_nodes, true, g->nnode * sizeof(bool));
     // set distance value to infinity
-    //memset(s->node_dist_vals, -1, g->nnode * sizeof(int));
+    // memset(s->node_dist_vals, -1, g->nnode * sizeof(int));
     int INF = s->max_buckets;
-# if OMP
-    # pragma omp parallel for
+#if OMP
+#pragma omp parallel for
 #endif
     for (int i = 0; i < g->nnode; i++) {
         s->node_dist_vals[i] = INF;
     }
     // preallocate bucket * nnode lists
     // TODO add to s
-    //s->buckets[bucket_num][nnode]
-    //s->bucket_counter[bucket_num]
-    //s->bucket_index[bucket_num]
-    //s->max_buckets
-
+    // s->buckets[bucket_num][nnode]
+    // s->bucket_counter[bucket_num]
+    // s->bucket_index[bucket_num]
+    // s->max_buckets
 
     // set start node to 0
     s->node_dist_vals[cur_node] = 0;
@@ -93,41 +89,43 @@ static int next_move(state_t *s, int drone_id) {
             if (s->bucket_counter[i] != 0) {
                 cur_bucket = i;
                 loop_exit = false;
-                //printf("1. cur-bucket and count: %d %d\n", cur_bucket, s->bucket_counter[i]);
+                // printf("1. cur-bucket and count: %d %d\n", cur_bucket,
+                // s->bucket_counter[i]);
                 break;
             }
         }
         if (loop_exit) {
             break;
         }
-        //printf("2. cur-bucket and count: %d %d\n", cur_bucket, s->bucket_counter[cur_bucket]);
+        // printf("2. cur-bucket and count: %d %d\n", cur_bucket,
+        // s->bucket_counter[cur_bucket]);
 
         // Take first vertex from bucket.
         int cur_vertex = s->bucket_index[cur_bucket];
-        //printf("cur_vertex: %d\n", cur_vertex);
+        // printf("cur_vertex: %d\n", cur_vertex);
         // Remove from bucket
         s->buckets[cur_bucket * g->nnode + cur_vertex] = 0;
         s->bucket_counter[cur_bucket]--;
-        // current vertex is first index that isn't 0?
-        //int cur_vertex = s->buckets[cur_bucket][index];
-        //s->bucket_index[cur_bucket]++;
+// current vertex is first index that isn't 0?
+// int cur_vertex = s->buckets[cur_bucket][index];
+// s->bucket_index[cur_bucket]++;
 
-        // Process all adjacents of vertex cur_vertex, and update dist. if required
+// Process all adjacents of vertex cur_vertex, and update dist. if required
 #if OMP
-        # pragma omp parallel for
+#pragma omp parallel for
 #endif
         for (int d = 0; d < DIRECTIONS; d++) {
             // get neighbor
-            int nbr = calculate_neighbor(cur_vertex, (enum direction) d, g);
+            int nbr = calculate_neighbor(cur_vertex, (enum direction)d, g);
             if (nbr < 0 || nbr >= g->nnode) {
                 continue;
             }
             int w = get_weight(d);
 
-            //printf("cur_vertex, nbr: %d, %d\n", cur_vertex, nbr);
+            // printf("cur_vertex, nbr: %d, %d\n", cur_vertex, nbr);
             int d_cur = s->node_dist_vals[cur_vertex];
             int d_nbr = s->node_dist_vals[nbr];
-            //printf("d_cur, d_nbr, w: %d, %d, %d\n", d_cur, d_nbr, w);
+            // printf("d_cur, d_nbr, w: %d, %d, %d\n", d_cur, d_nbr, w);
             // if this is a shorter path
             if (d_nbr > d_cur + w) {
                 // if d_nbr isn't INF then it must be in B[d_nbr] bucket, so
@@ -135,9 +133,9 @@ static int next_move(state_t *s, int drone_id) {
                 if (d_nbr != INF) {
 
                     s->buckets[d_nbr * g->nnode + nbr] = 0;
-                    //s->buckets[d_nbr][nbr] = 0;
+// s->buckets[d_nbr][nbr] = 0;
 #if OMP
-                    # pragma omp atomic
+#pragma omp atomic
 #endif
                     s->bucket_counter[d_nbr]--;
                 }
@@ -145,14 +143,14 @@ static int next_move(state_t *s, int drone_id) {
                 s->node_dist_vals[nbr] = d_cur + w;
                 d_nbr = d_cur + w;
                 // put nbr into updated distance bucket
-                //s->buckets[d_nbr][nbr] = 1;
-                //printf("index: %d\n", d_nbr*s->max_buckets + nbr);
+                // s->buckets[d_nbr][nbr] = 1;
+                // printf("index: %d\n", d_nbr*s->max_buckets + nbr);
                 s->buckets[d_nbr * g->nnode + nbr] = 1;
 #if OMP
-                # pragma omp atomic
+#pragma omp atomic
 #endif
                 s->bucket_counter[d_nbr]++;
-                //printf("test\n");
+                // printf("test\n");
                 // "storing updated iterator in dist[v].second"???
                 // unnecessary since we iterate thru DIRECTIONS on every node
             }
@@ -162,7 +160,7 @@ static int next_move(state_t *s, int drone_id) {
         total_direction_time += (currentSeconds() - start_time2);
         start_time2 = currentSeconds();
 #if OMP
-        #pragma omp parallel for schedule(auto)
+#pragma omp parallel for schedule(auto)
 #endif
         for (int b = 0; b < s->max_buckets; b++) {
             int node = 0;
@@ -181,11 +179,13 @@ static int next_move(state_t *s, int drone_id) {
     printf("Time running Dial's: %.4f\n", end_time - start_time);
     printf("-----Time spent in directions: %.4f\n", total_direction_time);
     printf("-----Time spent in buckets: %.4f\n", total_bucket_time);
-    //printf("end\n\n");
+    // printf("end\n\n");
     // get the next move
-    // iterate through all the neighbors of the goal, follow the minimum distance
-    // find the edge where edgeweight(cur_node, nbr) + dist(nbr, goal) = dist(start_node, goal)
-    //int min_dist = INF;
+    // iterate through all the neighbors of the goal, follow the minimum
+    // distance
+    // find the edge where edgeweight(cur_node, nbr) + dist(nbr, goal) =
+    // dist(start_node, goal)
+    // int min_dist = INF;
     int min_node = goal_node;
     int result_node = start_node;
 
@@ -194,15 +194,16 @@ static int next_move(state_t *s, int drone_id) {
     int path_weight = s->node_dist_vals[goal_node];
     int path_so_far = 0;
     while (cur_node != start_node) {
-        //min_dist = INF;
+        // min_dist = INF;
         int added_weight = 0;
         for (int d = 0; d < DIRECTIONS; d++) {
             // get the minimum distance to start
             // keep running tally
-            int nbr = calculate_neighbor(cur_node, (enum direction) d, g);
-            bool check = path_weight == path_so_far + get_weight(d) + s->node_dist_vals[nbr];
+            int nbr = calculate_neighbor(cur_node, (enum direction)d, g);
+            bool check = path_weight ==
+                         path_so_far + get_weight(d) + s->node_dist_vals[nbr];
             if (nbr >= 0 && nbr <= g->nnode && check) {
-                //min_dist = s->node_dist_vals[nbr];
+                // min_dist = s->node_dist_vals[nbr];
                 min_node = nbr;
                 added_weight = get_weight(d);
             }
@@ -214,38 +215,36 @@ static int next_move(state_t *s, int drone_id) {
         cur_node = min_node;
         path_so_far += added_weight;
     }
-/*
-    for (int d = 0; d < DIRECTIONS; d++) {
-        // find minimum value of dist(start, goal) - edge(start, neighbor)
-        int w = get_weight(d);
-        if (s->node_dist_vals[goal_node] - w < min_dist) {
-            min_dist = s->node_dist_vals[goal_node] - w;
-            min_node = calculate_neighbor(start_node, (enum direction) d, g);
+    /*
+        for (int d = 0; d < DIRECTIONS; d++) {
+            // find minimum value of dist(start, goal) - edge(start, neighbor)
+            int w = get_weight(d);
+            if (s->node_dist_vals[goal_node] - w < min_dist) {
+                min_dist = s->node_dist_vals[goal_node] - w;
+                min_node = calculate_neighbor(start_node, (enum direction) d,
+       g);
+            }
         }
-    }
-    */
+        */
     /*
     if (result_node == start_node) {
         printf("Couldn't find correct neighbor\n");
     }
     */
     return result_node;
-
 }
-
 
 // TODO add next drone position
 static void process_batch(state_t *s, int bstart, int bcount) {
-    //grid_t* g = s->g;
+    // grid_t* g = s->g;
 
     // Get next move towards the goal
     for (int drone_id = bstart; drone_id < bstart + bcount; drone_id++) {
         s->drone_position[drone_id] = next_move(s, drone_id);
     }
-
 }
 
-void run_step(state_t* s) {
+void run_step(state_t *s) {
 
     // Iterate through all drones
     // One by one for now?
@@ -256,14 +255,11 @@ void run_step(state_t* s) {
 }
 
 // TODO move to a diff. file?
-void show () {
+void show() {}
 
-}
-
-
-void simulate (state_t *s, int count, int dinterval, bool display) {
+void simulate(state_t *s, int count, int dinterval, bool display) {
     /* Compute, show initial state */
-    bool show_counts  = true;
+    bool show_counts = true;
 
     // I guess we should only display drone positions
 
@@ -271,14 +267,14 @@ void simulate (state_t *s, int count, int dinterval, bool display) {
         show(s, show_counts);
     // TODO write show
 
-    for (int i=0; i<count; i++) {
-        //printf("hi %d\n", OMP);
+    for (int i = 0; i < count; i++) {
+        // printf("hi %d\n", OMP);
         run_step(s);
 
         // test: print all the drones and their goals
 
         int n = s->num_drones;
-        for(int j = 0; j < n; j++) {
+        for (int j = 0; j < n; j++) {
             printf("%d %d\n", s->drone_position[j], s->drone_goal[j]);
         }
         printf("\n");
@@ -299,6 +295,4 @@ void simulate (state_t *s, int count, int dinterval, bool display) {
         }
         */
     }
-
-
 }

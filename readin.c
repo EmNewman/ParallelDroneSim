@@ -27,7 +27,7 @@ static inline bool is_comment(char *s) {
 /* Allocate n ints and zero them out */
 int *int_alloc(size_t n) { return (int *)calloc(n, sizeof(int)); }
 
-state_t* init(FILE* infile) {
+state_t *init(FILE *infile) {
     // Allocate s, g
     state_t *s = malloc(sizeof(state_t));
     if (s == NULL) {
@@ -47,7 +47,7 @@ state_t* init(FILE* infile) {
 
     bool success = read_input_file(s, g, infile);
     if (!success) {
-        //done();
+        // done();
         exit(1);
     }
     return s;
@@ -82,13 +82,13 @@ bool read_input_file(state_t *s, grid_t *g, FILE *infile) {
     ok = ok && s->unvisited_nodes != NULL;
     s->node_dist_vals = int_alloc(g->nnode);
     ok = ok && s->node_dist_vals != NULL;
-    s->buckets = int_alloc(s->max_buckets * g->nnode); //size max_buckets * g->nnode;
+    s->buckets =
+        int_alloc(s->max_buckets * g->nnode); // size max_buckets * g->nnode;
     ok = ok && s->buckets != NULL;
     s->bucket_counter = int_alloc(s->max_buckets);
     ok = ok && s->bucket_counter != NULL;
     s->bucket_index = int_alloc(s->max_buckets);
     ok = ok && s->bucket_index != NULL;
-
 
     if (!ok) {
         outmsg("Couldn't allocate space for %d drones", s->num_drones);
