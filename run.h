@@ -50,11 +50,12 @@ typedef struct {
     int *drone_goal;
 
     int *node_dist_vals;
-    int *unvisited_nodes;
+    bool *unvisited_nodes;
 
+    // Buckets range from [i * g->nnode, (i + 1) * g->nnode)
     int *buckets;        // size max_buckets * g->nnode;
     int *bucket_counter; // size max_buckets
-    int *bucket_index;   // size max_buckets
+    // int *bucket_index;   // size max_buckets
     int max_buckets;
 } state_t;
 

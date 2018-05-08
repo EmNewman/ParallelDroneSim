@@ -71,14 +71,14 @@ bool read_input_file(state_t *s, grid_t *g, FILE *infile) {
     }
     g->nnode = g->x_dim * g->y_dim * g->z_dim;
     int nnode = g->nnode;
-    s->max_buckets = g->nnode * MAX_WEIGHT;
+    s->max_buckets = (g->nnode - 1) * MAX_WEIGHT;
 
     bool ok = true;
     s->drone_goal = int_alloc(s->num_drones);
     ok = ok && s->drone_goal != NULL;
     s->drone_position = int_alloc(s->num_drones);
     ok = ok && s->drone_position != NULL;
-    s->unvisited_nodes = int_alloc(g->nnode);
+    s->unvisited_nodes = calloc(g->nnode, sizeof(bool));
     ok = ok && s->unvisited_nodes != NULL;
     s->node_dist_vals = int_alloc(g->nnode);
     ok = ok && s->node_dist_vals != NULL;
@@ -87,8 +87,6 @@ bool read_input_file(state_t *s, grid_t *g, FILE *infile) {
     ok = ok && s->buckets != NULL;
     s->bucket_counter = int_alloc(s->max_buckets);
     ok = ok && s->bucket_counter != NULL;
-    s->bucket_index = int_alloc(s->max_buckets);
-    ok = ok && s->bucket_index != NULL;
 
     if (!ok) {
         outmsg("Couldn't allocate space for %d drones", s->num_drones);

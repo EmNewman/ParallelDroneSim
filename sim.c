@@ -19,6 +19,16 @@ static inline int get_weight(int d) {
     }
 }
 
+static inline int dir2weight_rev(int d) {
+    if (d == Z_POS) {
+        return DOWN_WEIGHT;
+    } else if (d == Z_NEG) {
+        return UP_WEIGHT;
+    } else {
+        return REG_WEIGHT;
+    }
+}
+
 static int next_move(state_t *s, int drone_id) {
     grid_t *g = s->g;
 
@@ -27,17 +37,13 @@ static int next_move(state_t *s, int drone_id) {
     // Move towards the goal.
 
     /* Algorithm:
-     * Dijkstra's
-     * Assign weights to nodes: up is 2, side-side is 1, down is 0.5
-     *
-     *
      *
      * Dial's:
-     * Maintain buckets, numberd 0 through wV
+     * Maintain buckets, numbered 0 through wV
      * w = max edge weight, V = vertices
-     * Bucket k contains all temporarily labeled nodes with distance = k
+     * Bucket k contains all nodes with distance = k
      * Nodes in each bucket are represented by list of vertices
-     * Buckets checked (sequentially) until first non-empty bucket found
+     * Buckets checked (sequentially)
      * Nodes with min dist. label are permanently labeled/deleted from bucket
      * position of temp labeled vertex in buckets is updated when dist. label of
      *      vertex changes
@@ -45,13 +51,11 @@ static int next_move(state_t *s, int drone_id) {
      *
      */
     // TODO protect against inf loops
-    double total_direction_time = 0;
-    double total_bucket_time = 0;
     // for now: do the naive way
     double start_time = currentSeconds();
+
     int start_node = s->drone_position[drone_id];
     int goal_node = s->drone_goal[drone_id];
-    int cur_node = start_node;
     // mark all nodes as unvisited
     if (goal_node == start_node) {
         return goal_node;
@@ -65,173 +69,104 @@ static int next_move(state_t *s, int drone_id) {
 #endif
     for (int i = 0; i < g->nnode; i++) {
         s->node_dist_vals[i] = INF;
+        s->unvisited_nodes[i] = true;
     }
-    // preallocate bucket * nnode lists
-    // TODO add to s
-    // s->buckets[bucket_num][nnode]
-    // s->bucket_counter[bucket_num]
-    // s->bucket_index[bucket_num]
-    // s->max_buckets
+
+    for (int i = 0; i < s->max_buckets; i++) {
+        s->bucket_counter[i] = 0;
+    }
 
     // set start node to 0
-    s->node_dist_vals[cur_node] = 0;
+    s->node_dist_vals[start_node] = 0;
     // while goal has not been visited
-    int cur_bucket = 0;
-    s->buckets[0 + cur_node] = 1;
+    s->buckets[0] = start_node;
     s->bucket_counter[0] = 1;
-    s->bucket_index[0] = cur_node;
-    printf("Time initializing: %.4f\n", currentSeconds() - start_time);
-    while (1) {
-        double start_time2 = currentSeconds();
-        // Check buckets until first non-empty bucket is found
-        bool loop_exit = true;
-        for (int i = 0; i < s->max_buckets; i++) {
-            if (s->bucket_counter[i] != 0) {
-                cur_bucket = i;
-                loop_exit = false;
-                // printf("1. cur-bucket and count: %d %d\n", cur_bucket,
-                // s->bucket_counter[i]);
-                break;
-            }
-        }
-        if (loop_exit) {
-            break;
-        }
-        // printf("2. cur-bucket and count: %d %d\n", cur_bucket,
-        // s->bucket_counter[cur_bucket]);
-
-        // Take first vertex from bucket.
-        int cur_vertex = s->bucket_index[cur_bucket];
-        // printf("cur_vertex: %d\n", cur_vertex);
-        // Remove from bucket
-        s->buckets[cur_bucket * g->nnode + cur_vertex] = 0;
-        s->bucket_counter[cur_bucket]--;
-// current vertex is first index that isn't 0?
-// int cur_vertex = s->buckets[cur_bucket][index];
-// s->bucket_index[cur_bucket]++;
-
-// Process all adjacents of vertex cur_vertex, and update dist. if required
+    int nodes_seen = 0;
+    // printf("Time initializing: %.4f\n", currentSeconds() - start_time);
+    for (int bucket = 0; bucket < s->max_buckets; bucket++)
+    {
+        // printf("Dealing with bucket %d\n", bucket);
+        // printf("There are %d nodes in this bucket\n", s->bucket_counter[bucket]);
+        nodes_seen += s->bucket_counter[bucket];
 #if OMP
 #pragma omp parallel for
 #endif
-        for (int d = 0; d < DIRECTIONS; d++) {
-            // get neighbor
-            int nbr = calculate_neighbor(cur_vertex, (enum direction)d, g);
-            if (nbr < 0 || nbr >= g->nnode) {
+        for (int i = bucket * g->nnode;
+             i < bucket * g->nnode + s->bucket_counter[bucket]; i++) {
+            int cur_vertex = s->buckets[i];
+            // printf("cur_vertex: %d\n", cur_vertex);
+            // If we've already encountered this node before...
+            if (!s->unvisited_nodes[cur_vertex])
                 continue;
-            }
-            int w = get_weight(d);
+            s->unvisited_nodes[cur_vertex] = false;
 
-            // printf("cur_vertex, nbr: %d, %d\n", cur_vertex, nbr);
-            int d_cur = s->node_dist_vals[cur_vertex];
-            int d_nbr = s->node_dist_vals[nbr];
-            // printf("d_cur, d_nbr, w: %d, %d, %d\n", d_cur, d_nbr, w);
-            // if this is a shorter path
-            if (d_nbr > d_cur + w) {
-                // if d_nbr isn't INF then it must be in B[d_nbr] bucket, so
-                // "erase" entry in bucket
-                if (d_nbr != INF) {
+            // Loop over neighbors
+            for (int d = 0; d < DIRECTIONS; d++) {
+                int nbr = calculate_neighbor(cur_vertex, (enum direction)d, g);
+                // printf("nbr in dials: %d\n", nbr);
 
-                    s->buckets[d_nbr * g->nnode + nbr] = 0;
-// s->buckets[d_nbr][nbr] = 0;
-#if OMP
-#pragma omp atomic
-#endif
-                    s->bucket_counter[d_nbr]--;
+                // If there's no vertex in this direction, or if it's already
+                // been visited
+                if (nbr < 0 || nbr >= g->nnode || !s->unvisited_nodes[nbr]) {
+                    continue;
                 }
-                // update distance
-                s->node_dist_vals[nbr] = d_cur + w;
-                d_nbr = d_cur + w;
-                // put nbr into updated distance bucket
-                // s->buckets[d_nbr][nbr] = 1;
-                // printf("index: %d\n", d_nbr*s->max_buckets + nbr);
-                s->buckets[d_nbr * g->nnode + nbr] = 1;
+
+                int tentative_dist = s->node_dist_vals[cur_vertex] +
+                                     get_weight(d);
+                // printf("tentative_dist: %d\n", tentative_dist);
+                int current_dist;
+                while (tentative_dist < (current_dist = s->node_dist_vals[nbr]))
+                {
 #if OMP
-#pragma omp atomic
+                    bool swap =__sync_bool_compare_and_swap(
+                        s->node_dist_vals + nbr,
+                        current_dist, tentative_dist);
+
+                    if (swap)
+                    {
+                        int dest = __sync_fetch_and_add(s->bucket_counter, 1);
+                        s->buckets[g->nnode * tentative_dist + dest] = nbr;
+                    }
+#else
+                    s->node_dist_vals[nbr] = tentative_dist;
+
+                    s->buckets[g->nnode * tentative_dist +
+                               s->bucket_counter[tentative_dist]] = nbr;
+                    s->bucket_counter[tentative_dist]++;
 #endif
-                s->bucket_counter[d_nbr]++;
-                // printf("test\n");
-                // "storing updated iterator in dist[v].second"???
-                // unnecessary since we iterate thru DIRECTIONS on every node
-            }
-        }
-        // update bucket_index
-        // TODO ??
-        total_direction_time += (currentSeconds() - start_time2);
-        start_time2 = currentSeconds();
-#if OMP
-#pragma omp parallel for schedule(auto)
-#endif
-        for (int b = 0; b < s->max_buckets; b++) {
-            int node = 0;
-            for (int j = 0; j < s->g->nnode; j++) {
-                // s->buckets[b][j]
-                if (s->buckets[b * g->nnode + j] != 0) {
-                    node = j;
-                    break;
                 }
             }
-            s->bucket_index[b] = node;
         }
-        total_bucket_time += (currentSeconds() - start_time2);
     }
+    // printf("Nodes seen: %d\n", nodes_seen);
+    // for (int i = 0; i < g->nnode; i++)
+    //   printf("Node %d has distance %d\n", i, s->node_dist_vals[i]);
+
     double end_time = currentSeconds();
     printf("Time running Dial's: %.4f\n", end_time - start_time);
-    printf("-----Time spent in directions: %.4f\n", total_direction_time);
-    printf("-----Time spent in buckets: %.4f\n", total_bucket_time);
-    // printf("end\n\n");
-    // get the next move
-    // iterate through all the neighbors of the goal, follow the minimum
-    // distance
-    // find the edge where edgeweight(cur_node, nbr) + dist(nbr, goal) =
-    // dist(start_node, goal)
-    // int min_dist = INF;
-    int min_node = goal_node;
-    int result_node = start_node;
 
-    cur_node = goal_node;
-
-    int path_weight = s->node_dist_vals[goal_node];
-    int path_so_far = 0;
+    int prev_node = 0;
+    int cur_node = goal_node;
     while (cur_node != start_node) {
-        // min_dist = INF;
-        int added_weight = 0;
-        for (int d = 0; d < DIRECTIONS; d++) {
-            // get the minimum distance to start
-            // keep running tally
-            int nbr = calculate_neighbor(cur_node, (enum direction)d, g);
-            bool check = path_weight ==
-                         path_so_far + get_weight(d) + s->node_dist_vals[nbr];
-            if (nbr >= 0 && nbr <= g->nnode && check) {
-                // min_dist = s->node_dist_vals[nbr];
-                min_node = nbr;
-                added_weight = get_weight(d);
-            }
+        prev_node = cur_node;
+        // printf("cur_node: %d\n", cur_node);
+        for (int i = 0; i < DIRECTIONS; i++) {
+            enum direction d = i;
+            int nbr = calculate_neighbor(cur_node, d, g);
+            // printf("nbr: %d\n", nbr);
+            // printf("s->node_dist_vals[nbr]: %d\n", s->node_dist_vals[nbr]);
+            // printf("s->node_dist_vals[cur_node]: %d\n", s->node_dist_vals[cur_node]);
+            if (nbr != -1 &&
+                s->node_dist_vals[nbr] + dir2weight_rev(d) == s->node_dist_vals[cur_node])
+                {
+                    cur_node = nbr;
+                    break;
+                }
         }
-        // update to neighbor
-        if (min_node == start_node) {
-            result_node = cur_node;
-        }
-        cur_node = min_node;
-        path_so_far += added_weight;
+        // When cur_node == start_node, prev_node is the node we want to return
     }
-    /*
-        for (int d = 0; d < DIRECTIONS; d++) {
-            // find minimum value of dist(start, goal) - edge(start, neighbor)
-            int w = get_weight(d);
-            if (s->node_dist_vals[goal_node] - w < min_dist) {
-                min_dist = s->node_dist_vals[goal_node] - w;
-                min_node = calculate_neighbor(start_node, (enum direction) d,
-       g);
-            }
-        }
-        */
-    /*
-    if (result_node == start_node) {
-        printf("Couldn't find correct neighbor\n");
-    }
-    */
-    return result_node;
+
+    return prev_node;
 }
 
 // TODO add next drone position
@@ -240,8 +175,16 @@ static void process_batch(state_t *s, int bstart, int bcount) {
 
     // Get next move towards the goal
     for (int drone_id = bstart; drone_id < bstart + bcount; drone_id++) {
-        s->drone_position[drone_id] = next_move(s, drone_id);
+        int goal_node = s->drone_goal[drone_id];
+        if (s->drone_position[drone_id] == goal_node)
+            printf("Drone %d has reached goal\n", drone_id);
+        else
+        {
+            printf("Finding next move of drone_id: %d\n", drone_id);
+            s->drone_position[drone_id] = next_move(s, drone_id);
+        }
     }
+
 }
 
 void run_step(state_t *s) {
