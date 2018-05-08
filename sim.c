@@ -69,11 +69,13 @@ static int dir2weight_rev(enum direction d)
 }
 
 
-static int next_move(state_t *s, int drone_id) {
+static int next_move(state_t *s, int drone_id, double* bench_time) {
     grid_t *g = s->g;
 
     int start_node = s->drone_position[drone_id];
     int goal_node = s->drone_goal[drone_id];
+
+    double start_time = currentSeconds();
 
 for (int iter = 0; iter < ITER; iter++) {
     // Mark all nodes as unvisited
@@ -136,6 +138,7 @@ for (int iter = 0; iter < ITER; iter++) {
         pq_pop(pq);
     binary_heap_free(pq);
 }
+    *bench_time += currentSeconds() - start_time;
 
     // printf("Distances calculated!\n");
 
@@ -163,7 +166,7 @@ for (int iter = 0; iter < ITER; iter++) {
 }
 
 // TODO add next drone position
-static void process_batch(state_t *s, int bstart, int bcount) {
+static double process_batch(state_t *s, int bstart, int bcount) {
     // grid_t* g = s->g;
 
     // Get next move towards the goal
@@ -172,25 +175,27 @@ static void process_batch(state_t *s, int bstart, int bcount) {
     # pragma omp parallel for schedule(auto)
 #endif
 */
+    double total_bench_time = 0.0;
     for (int drone_id = bstart; drone_id < bstart + bcount; drone_id++) {
         int goal_node = s->drone_goal[drone_id];
-        if (s->drone_position[drone_id] == goal_node)
-            printf("Drone %d has reached goal\n", drone_id);
+        if (s->drone_position[drone_id] == goal_node);
+            // printf("Drone %d has reached goal\n", drone_id);
         else
         {
-            printf("Finding next move of drone_id: %d\n", drone_id);
-            s->drone_position[drone_id] = next_move(s, drone_id);
+            // printf("Finding next move of drone_id: %d\n", drone_id);
+            s->drone_position[drone_id] = next_move(s, drone_id, &total_bench_time);
         }
     }
+    return total_bench_time;
 }
 
-void run_step(state_t *s) {
+double run_step(state_t *s) {
 
     // Iterate through all drones
     // One by one for now?
     // Leave in process_batch just in case
     // for (int b = 0; b < s->num_drones; b+= batch_size;) {
-    process_batch(s, 0, s->num_drones);
+    return process_batch(s, 0, s->num_drones);
     //}
 }
 
@@ -207,9 +212,11 @@ void simulate(state_t *s, int count, int dinterval, bool display) {
         show(s, show_counts);
     // TODO write show
 
+    double total_total_bench_time = 0.0;
+
     for (int i = 0; i < count; i++) {
         // printf("hi\n");
-        run_step(s);
+        total_total_bench_time += run_step(s);
 
         // test: print all the drones and their goals
 
@@ -226,4 +233,5 @@ void simulate(state_t *s, int count, int dinterval, bool display) {
         }
         */
     }
+    printf("Total time taken: %f\n", total_total_bench_time);
 }
