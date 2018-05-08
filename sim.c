@@ -56,6 +56,8 @@ static int next_move(state_t *s, int drone_id) {
 
     int start_node = s->drone_position[drone_id];
     int goal_node = s->drone_goal[drone_id];
+
+for (int iters = 0; iters < 1; iters++) {
     // mark all nodes as unvisited
     if (goal_node == start_node) {
         return goal_node;
@@ -142,6 +144,7 @@ static int next_move(state_t *s, int drone_id) {
     // for (int i = 0; i < g->nnode; i++)
     //   printf("Node %d has distance %d\n", i, s->node_dist_vals[i]);
 
+}
     double end_time = currentSeconds();
     printf("Time running Dial's: %.4f\n", end_time - start_time);
 
