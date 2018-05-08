@@ -9,7 +9,7 @@
 #define Z_POS 4
 #define Z_NEG 5
 
-#define ITERS 100
+#define ITERS 10
 
 static inline int get_weight(int d) {
     if (d == Z_POS) {
