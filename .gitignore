@@ -1,6 +1,7 @@
 run
 run-seq
 run-omp
+crun-omp
 
 # Prerequisites
 *.d
