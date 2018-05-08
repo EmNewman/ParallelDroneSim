@@ -14,6 +14,8 @@
 #define OMP2 0
 #define OMP 0
 
+#define ITER 10
+
 struct vertex_dist {
     int distance;
     int vertex;
@@ -73,6 +75,7 @@ static int next_move(state_t *s, int drone_id) {
     int start_node = s->drone_position[drone_id];
     int goal_node = s->drone_goal[drone_id];
 
+for (int iter = 0; iter < ITER; iter++) {
     // Mark all nodes as unvisited
     for (int i = 0; i < g->nnode; i++)
     {
@@ -128,6 +131,11 @@ static int next_move(state_t *s, int drone_id) {
         // mark as visited
         s->unvisited_nodes[cur_node] = false;
     }
+    // Empty the queue
+    while (binary_heap_num_entries(pq) > 0)
+        pq_pop(pq);
+    binary_heap_free(pq);
+}
 
     // printf("Distances calculated!\n");
 
