@@ -134,21 +134,13 @@ static int next_move(state_t *s, int drone_id) {
     // get the next move
     // iterate through all the neighbors of the goal, follow the minimum
     // distance
-    int result_pos = 0;
+    int prev_node = 0;
     int cur_node = goal_node;
     while (cur_node != start_node) {
-        // printf("cur_node backtracking: %d\n", cur_node);
-        int prev_node = cur_node;
+        prev_node = cur_node;
         for (int i = 0; i < DIRECTIONS; i++) {
             enum direction d = i;
             int nbr = calculate_neighbor(cur_node, d, g);
-            // printf("nbr backtracking: %d\n", nbr);
-            // if (nbr == 0)
-            // {
-                // printf("s->node_dist_vals[nbr] = %d\n", s->node_dist_vals[nbr]);
-                // printf("dir2weight_rev(d) = %d\n", dir2weight_rev(d));
-                // printf("s->node_dist_vals[cur_node] = %d\n", s->node_dist_vals[cur_node]);
-            // }
             if (nbr != -1 &&
                 s->node_dist_vals[nbr] + dir2weight_rev(d) == s->node_dist_vals[cur_node])
                 {
@@ -156,13 +148,10 @@ static int next_move(state_t *s, int drone_id) {
                     break;
                 }
             }
-
-        if (cur_node == start_node) {
-            result_pos = prev_node;
-        }
+        // When cur_node == start_node, prev_node is the node we want to return
     }
 
-    return result_pos;
+    return prev_node;
 }
 
 // TODO add next drone position
