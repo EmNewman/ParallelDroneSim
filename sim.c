@@ -74,6 +74,9 @@ for (int iters = 0; iters < 1; iters++) {
         s->unvisited_nodes[i] = true;
     }
 
+#if OMP
+#pragma omp parallel for
+#endif
     for (int i = 0; i < s->max_buckets; i++) {
         s->bucket_counter[i] = 0;
     }
